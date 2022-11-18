@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Windows;
 
 namespace DSP3.Model
 {
@@ -13,6 +14,11 @@ namespace DSP3.Model
                 yield return selector(i, item);
                 i++;
             }
+        }
+
+        public static IEnumerable<Vector> AsPoints(this IEnumerable<double> source)
+        {
+            return source.SelectWithIndex((i, v) => new Vector(i, v));
         }
     }
 }

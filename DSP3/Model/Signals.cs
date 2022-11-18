@@ -4,13 +4,13 @@ using System.Linq;
 
 namespace DSP3.Model
 {
-    public static class Signals
+    public static class Signal
     {
         private static readonly double PI2 = Math.PI * 2;
 
         public static double CalcSignal(double amplitude, double frequency, double phase, int i, int n)
         {
-            return amplitude * Math.Sin(PI2 * frequency * i / n + phase);
+            return amplitude * Math.Cos(PI2 * frequency * i / n + phase);
         }
 
         public static IEnumerable<double> CalcHarmonicSignals(int n, double amplitude, double frequency, double phase)
@@ -30,7 +30,7 @@ namespace DSP3.Model
         public static IEnumerable<double> CalcSineSpectrums(int harmonicsCount, IEnumerable<double> signals)
         {
             var n = signals.Count();
-            var num = 2 / n;
+            var num = 2.0d / n;
             return Enumerable.Range(0, harmonicsCount)
                 .Select(j => signals
                     .SelectWithIndex((i, v) => v * Math.Sin(PI2 * i * j / n))
@@ -41,7 +41,7 @@ namespace DSP3.Model
         public static IEnumerable<double> CalcCosineSpectrums(int harmonicsCount, IEnumerable<double> signals)
         {
             var n = signals.Count();
-            var num = 2 / n;
+            var num = 2.0d / n;
             return Enumerable.Range(0, harmonicsCount)
                 .Select(j => signals
                     .SelectWithIndex((i, v) => v * Math.Cos(PI2 * i * j / n))

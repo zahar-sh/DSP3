@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Linq;
+using System.Windows;
 using System.Windows.Input;
 
 namespace DSP3.ViewModel
@@ -13,16 +14,21 @@ namespace DSP3.ViewModel
         private double _amplitude;
         private double _frequency;
         private double _phase;
-        private IEnumerable<double> _signals;
-        private IEnumerable<double> _sineSpectrums;
-        private IEnumerable<double> _cosineSpectrums;
-        private IEnumerable<double> _amplitudeSpectrums;
-        private IEnumerable<double> _phaseSpectrums;
-        private IEnumerable<double> _restoredSignals;
+        private IEnumerable<Vector> _signals;
+        private IEnumerable<Vector> _amplitudeSpectrums;
+        private IEnumerable<Vector> _phaseSpectrums;
+        private IEnumerable<Vector> _restoredSignals;
+        private IEnumerable<Vector> _restoredNonPhasedSignals;
 
         public MainWindowViewModel()
         {
+            _signalsCount = 512;
+            _harmonicsCount = 1;
+            _amplitude = 5;
+            _frequency = 5;
+            _phase = 0;
             PropertyChanged += OnPropertyChanged;
+            Update();
         }
 
         public int SignalsCount { get => _signalsCount; set => SetProperty(ref _signalsCount, value, nameof(SignalsCount)); }
@@ -35,19 +41,15 @@ namespace DSP3.ViewModel
 
         public double Phase { get => _phase; set => SetProperty(ref _phase, value, nameof(Phase)); }
 
-        public IEnumerable<double> SignalValues { get => _signals; set => SetProperty(ref _signals, value, nameof(SignalValues)); }
+        public IEnumerable<Vector> Signals { get => _signals; set => SetProperty(ref _signals, value, nameof(Signals)); }
 
-        public IEnumerable<double> SineSpectrums { get => _sineSpectrums; set => SetProperty(ref _sineSpectrums, value, nameof(SineSpectrums)); }
+        public IEnumerable<Vector> AmplitudeSpectrums { get => _amplitudeSpectrums; set => SetProperty(ref _amplitudeSpectrums, value, nameof(AmplitudeSpectrums)); }
 
-        public IEnumerable<double> CosineSpectrums { get => _cosineSpectrums; set => SetProperty(ref _cosineSpectrums, value, nameof(CosineSpectrums)); }
+        public IEnumerable<Vector> PhaseSpectrums { get => _phaseSpectrums; set => SetProperty(ref _phaseSpectrums, value, nameof(PhaseSpectrums)); }
 
-        public IEnumerable<double> AmplitudeSpectrums { get => _amplitudeSpectrums; set => SetProperty(ref _amplitudeSpectrums, value, nameof(AmplitudeSpectrums)); }
+        public IEnumerable<Vector> RestoredSignals { get => _restoredSignals; set => SetProperty(ref _restoredSignals, value, nameof(RestoredSignals)); }
 
-        public IEnumerable<double> PhaseSpectrums { get => _phaseSpectrums; set => SetProperty(ref _phaseSpectrums, value, nameof(PhaseSpectrums)); }
-
-        public IEnumerable<double> RestoredSignals { get => _restoredSignals; set => SetProperty(ref _restoredSignals, value, nameof(RestoredSignals)); }
-
-        public ICommand RepaintCommand { get; }
+        public IEnumerable<Vector> RestoredNonPhasedSignals { get => _restoredNonPhasedSignals; set => SetProperty(ref _restoredNonPhasedSignals, value, nameof(RestoredNonPhasedSignals)); }
 
         public event PropertyChangedEventHandler PropertyChanged;
 
@@ -82,12 +84,19 @@ namespace DSP3.ViewModel
 
         private void Update()
         {
-            SignalValues = Signals.CalcHarmonicSignals(SignalsCount, Amplitude, Frequency, Phase).ToArray();
-            SineSpectrums = Signals.CalcSineSpectrums(HarmonicsCount, SignalValues).ToArray();
-            CosineSpectrums = Signals.CalcCosineSpectrums(HarmonicsCount, SignalValues).ToArray();
-            AmplitudeSpectrums = Signals.CalcAmplitudeSpectrums(SineSpectrums, CosineSpectrums).ToArray();
-            PhaseSpectrums = Signals.CalcPhaseSpectrums(SineSpectrums, CosineSpectrums).ToArray();
-            RestoredSignals = Signals.RestoreSignals(SignalsCount, AmplitudeSpectrums.Zip(PhaseSpectrums, (amplitude, phase) => (amplitude, phase))).ToArray();
+            var signals = Signal.CalcHarmonicSignals(SignalsCount, Amplitude, Frequency, Phase).ToList();
+            var sineSpectrums = Signal.CalcSineSpectrums(HarmonicsCount, signals).ToList();
+            var cosineSpectrums = Signal.CalcCosineSpectrums(HarmonicsCount, signals).ToList();
+            var amplitudeSpectrums = Signal.CalcAmplitudeSpectrums(sineSpectrums, cosineSpectrums).ToList();
+            var phaseSpectrums = Signal.CalcPhaseSpectrums(sineSpectrums, cosineSpectrums).ToList();
+            var restoredSignals = Signal.RestoreSignals(SignalsCount, amplitudeSpectrums.Zip(phaseSpectrums, (amplitude, phase) => (amplitude, phase))).ToList();
+            var restoredNonPhasedSignals = Signal.RestoreSignals(SignalsCount, amplitudeSpectrums).ToList();
+
+            Signals = signals.AsPoints();
+            AmplitudeSpectrums = amplitudeSpectrums.AsPoints();
+            PhaseSpectrums = phaseSpectrums.AsPoints();
+            RestoredSignals = restoredSignals.AsPoints();
+            RestoredNonPhasedSignals = restoredNonPhasedSignals.AsPoints();
         }
     }
 }
