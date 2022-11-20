@@ -7,12 +7,13 @@
         xmlns:vm="clr-namespace:DSP3.ViewModel"
         xmlns:sf="clr-namespace:Syncfusion.UI.Xaml.Charts;assembly=Syncfusion.SfChart.WPF"
         mc:Ignorable="d"
-        Title="MainWindow" Width="Auto" Height="Auto">
+        Title="DigitalSignalProcessing" Width="800" Height="800">
     <Window.DataContext>
         <vm:MainWindowViewModel/>
     </Window.DataContext>
 
-    <Grid>
+    <Grid 
+        Margin="10">
         <Grid.ColumnDefinitions>
             <ColumnDefinition Width="*"/>
             <ColumnDefinition Width="*"/>
@@ -100,6 +101,7 @@
                 <RowDefinition Height="Auto"/>
                 <RowDefinition Height="Auto"/>
                 <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
             </Grid.RowDefinitions>
             <Label 
                 Content="HarmonicsCount"
@@ -149,6 +151,26 @@
                 AutoToolTipPlacement="TopLeft" 
                 Grid.Column="1" 
                 Grid.Row="3"/>
+            <Label
+                Content="Phase"
+                Grid.Column="0"
+                Grid.Row="4"/>
+            <StackPanel 
+                Orientation="Horizontal"
+                Grid.Column="1"
+                Grid.Row="4">
+                <RadioButton
+                    x:Name="harmonicRadioButton"
+                    Content="Harmonic"
+                    Margin="10"
+                    IsChecked="True"
+                    Checked="SignalTypeChanged"/>
+                <RadioButton
+                    x:Name="polyharmonicRadioButton"
+                    Content="Polyharmonic"
+                    Margin="10"
+                    Checked="SignalTypeChanged"/>
+            </StackPanel>
         </Grid>
     </Grid>
 </Window>
