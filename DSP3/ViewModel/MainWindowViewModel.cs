@@ -1,19 +1,22 @@
 ﻿using DSP3.Model;
+using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Linq;
+using System.Threading.Tasks;
 using System.Windows;
-using System.Windows.Input;
 
 namespace DSP3.ViewModel
 {
     public class MainWindowViewModel : INotifyPropertyChanged
     {
+        private SignalType _signalType;
         private int _signalsCount;
         private int _harmonicsCount;
         private double _amplitude;
         private double _frequency;
         private double _phase;
+        private int _polyharmonicsCount;
         private IEnumerable<Vector> _signals;
         private IEnumerable<Vector> _amplitudeSpectrums;
         private IEnumerable<Vector> _phaseSpectrums;
@@ -22,16 +25,20 @@ namespace DSP3.ViewModel
 
         public MainWindowViewModel()
         {
+            _signalType = SignalType.Harmonic;
             _signalsCount = 512;
-            _harmonicsCount = 1;
-            _amplitude = 5;
-            _frequency = 5;
-            _phase = 0;
+            _harmonicsCount = 8;
+            _polyharmonicsCount = 32;
+            _amplitude = 8;
+            _frequency = 4;
+            _phase = 60;
             PropertyChanged += OnPropertyChanged;
             Update();
         }
 
         public int SignalsCount { get => _signalsCount; set => SetProperty(ref _signalsCount, value, nameof(SignalsCount)); }
+
+        public SignalType SignalType { get => _signalType; set => SetProperty(ref _signalType, value, nameof(SignalType)); }
 
         public int HarmonicsCount { get => _harmonicsCount; set => SetProperty(ref _harmonicsCount, value, nameof(HarmonicsCount)); }
 
@@ -40,6 +47,8 @@ namespace DSP3.ViewModel
         public double Frequency { get => _frequency; set => SetProperty(ref _frequency, value, nameof(Frequency)); }
 
         public double Phase { get => _phase; set => SetProperty(ref _phase, value, nameof(Phase)); }
+
+        public int PolyharmonicsCount { get => _polyharmonicsCount; set => SetProperty(ref _polyharmonicsCount, value, nameof(PolyharmonicsCount)); }
 
         public IEnumerable<Vector> Signals { get => _signals; set => SetProperty(ref _signals, value, nameof(Signals)); }
 
@@ -74,9 +83,12 @@ namespace DSP3.ViewModel
             switch (e.PropertyName)
             {
                 case nameof(SignalsCount):
+                case nameof(SignalType):
+                case nameof(HarmonicsCount):
                 case nameof(Amplitude):
                 case nameof(Frequency):
                 case nameof(Phase):
+                case nameof(PolyharmonicsCount):
                     Update();
                     break;
             }
@@ -84,19 +96,46 @@ namespace DSP3.ViewModel
 
         private void Update()
         {
-            var signals = Signal.CalcHarmonicSignals(SignalsCount, Amplitude, Frequency, Phase).ToList();
-            var sineSpectrums = Signal.CalcSineSpectrums(HarmonicsCount, signals).ToList();
-            var cosineSpectrums = Signal.CalcCosineSpectrums(HarmonicsCount, signals).ToList();
-            var amplitudeSpectrums = Signal.CalcAmplitudeSpectrums(sineSpectrums, cosineSpectrums).ToList();
-            var phaseSpectrums = Signal.CalcPhaseSpectrums(sineSpectrums, cosineSpectrums).ToList();
-            var restoredSignals = Signal.RestoreSignals(SignalsCount, amplitudeSpectrums.Zip(phaseSpectrums, (amplitude, phase) => (amplitude, phase))).ToList();
-            var restoredNonPhasedSignals = Signal.RestoreSignals(SignalsCount, amplitudeSpectrums).ToList();
+            var signals = CreateSignals().ToList();
+            var sineSpectrumsTask = Task.Run(() => Signal.CalcSineSpectrums(HarmonicsCount, signals).ToList());
+            var cosineSpectrumsTask = Task.Run(() => Signal.CalcCosineSpectrums(HarmonicsCount, signals).ToList());
+            var sineSpectrums = sineSpectrumsTask.GetAwaiter().GetResult();
+            var cosineSpectrums = cosineSpectrumsTask.GetAwaiter().GetResult();
+
+            var amplitudeSpectrumsTask = Task.Run(() => Signal.CalcAmplitudeSpectrums(sineSpectrums, cosineSpectrums).ToList());
+            var phaseSpectrumsTask = Task.Run(() => Signal.CalcPhaseSpectrums(sineSpectrums, cosineSpectrums).ToList());
+
+            var amplitudeSpectrums = amplitudeSpectrumsTask.GetAwaiter().GetResult();
+            var restoredNonPhasedSignalsTask = Task.Run(() => Signal.RestoreNonPhasedSignals(SignalsCount, amplitudeSpectrums).ToList());
+
+            var phaseSpectrums = phaseSpectrumsTask.GetAwaiter().GetResult();
+            var restoredSignalsTask = Task.Run(() => Signal.RestoreSignals(SignalsCount, amplitudeSpectrums, phaseSpectrums).ToList());
+
+            var restoredNonPhasedSignals = restoredNonPhasedSignalsTask.GetAwaiter().GetResult();
+            var restoredSignals = restoredSignalsTask.GetAwaiter().GetResult();
 
             Signals = signals.AsPoints();
             AmplitudeSpectrums = amplitudeSpectrums.AsPoints();
             PhaseSpectrums = phaseSpectrums.AsPoints();
             RestoredSignals = restoredSignals.AsPoints();
             RestoredNonPhasedSignals = restoredNonPhasedSignals.AsPoints();
+        }
+
+        private IEnumerable<double> CreateSignals()
+        {
+            return SignalType == SignalType.Harmonic
+                ? Signal.CalcHarmonicSignals(SignalsCount, Amplitude, Frequency, Signal.ToRadians(Phase))
+                : Signal.CalcPolyharmonicSignals(SignalsCount, CreateRandomPolyharmonic());
+        }
+
+        private IEnumerable<(double Amplitude, double Frequency, double Phase)> CreateRandomPolyharmonic()
+        {
+            var amplitudes = new double[] { 2, 3, 5, 9, 10, 12, 15 };
+            var phases = new double[] { Math.PI / 6, Math.PI / 4, Math.PI / 3, Math.PI / 2, 3 * Math.PI / 4, Math.PI };
+            var random = new Random();
+            double GetRandomElement(double[] array) => array[random.Next(array.Length)];
+            return Enumerable.Range(0, PolyharmonicsCount)
+                .Select(i => (GetRandomElement(amplitudes), 1.0d, GetRandomElement(phases)));
         }
     }
 }

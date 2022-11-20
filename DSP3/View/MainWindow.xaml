@@ -7,13 +7,27 @@
         xmlns:vm="clr-namespace:DSP3.ViewModel"
         xmlns:sf="clr-namespace:Syncfusion.UI.Xaml.Charts;assembly=Syncfusion.SfChart.WPF"
         mc:Ignorable="d"
-        Title="MainWindow" Width="900" Height="600">
+        Title="MainWindow" Width="Auto" Height="Auto">
     <Window.DataContext>
         <vm:MainWindowViewModel/>
     </Window.DataContext>
 
-    <StackPanel>
-        <sf:SfChart>
+    <Grid>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="*"/>
+            <ColumnDefinition Width="*"/>
+        </Grid.ColumnDefinitions>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+        <sf:SfChart 
+            Header="Signals"
+            Grid.Column="0"
+            Grid.Row="0"
+            Grid.ColumnSpan="2">
             <sf:SfChart.PrimaryAxis>
                 <sf:CategoryAxis Header="X" />
             </sf:SfChart.PrimaryAxis>
@@ -39,7 +53,44 @@
                 YBindingPath="Y"
                 Interior="#5F0000FF"/>
         </sf:SfChart>
-        <Grid>
+        <sf:SfChart
+            Header="AmplitudeSpectrums"
+            Grid.Column="0"
+            Grid.Row="1">
+            <sf:SfChart.PrimaryAxis>
+                <sf:CategoryAxis Header="X" />
+            </sf:SfChart.PrimaryAxis>
+            <sf:SfChart.SecondaryAxis>
+                <sf:NumericalAxis Header="Y"/>
+            </sf:SfChart.SecondaryAxis>
+            <sf:StepLineSeries
+                Name="AmplitudeSpectrums" 
+                ItemsSource="{Binding AmplitudeSpectrums}" 
+                XBindingPath="X"
+                YBindingPath="Y"
+                Interior="#FF0000"/>
+        </sf:SfChart>
+        <sf:SfChart
+            Header="PhaseSpectrums"
+            Grid.Column="1"
+            Grid.Row="1">
+            <sf:SfChart.PrimaryAxis>
+                <sf:CategoryAxis Header="X" />
+            </sf:SfChart.PrimaryAxis>
+            <sf:SfChart.SecondaryAxis>
+                <sf:NumericalAxis Header="Y"/>
+            </sf:SfChart.SecondaryAxis>
+            <sf:StepLineSeries
+                Name="PhaseSpectrums" 
+                ItemsSource="{Binding PhaseSpectrums}" 
+                XBindingPath="X"
+                YBindingPath="Y"
+                Interior="#0000FF"/>
+        </sf:SfChart>
+        <Grid 
+            Grid.Column="0"
+            Grid.Row="2"
+            Grid.ColumnSpan="2">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="*"/>
                 <ColumnDefinition Width="*"/>
@@ -57,7 +108,7 @@
             <Slider 
                 Value="{Binding HarmonicsCount, Mode=TwoWay}"
                 Minimum="1" 
-                Maximum="10" 
+                Maximum="20" 
                 SmallChange="1" 
                 AutoToolTipPlacement="TopLeft" 
                 Grid.Column="1" 
@@ -68,9 +119,9 @@
                 Grid.Row="1"/>
             <Slider 
                 Value="{Binding Amplitude, Mode=TwoWay}"
-                Minimum="-20" 
+                Minimum="1" 
                 Maximum="20" 
-                SmallChange="5" 
+                SmallChange="1" 
                 AutoToolTipPlacement="TopLeft" 
                 Grid.Column="1" 
                 Grid.Row="1"/>
@@ -82,7 +133,7 @@
                 Value="{Binding Frequency, Mode=TwoWay}"
                 Minimum="1" 
                 Maximum="20" 
-                SmallChange="5" 
+                SmallChange="1" 
                 AutoToolTipPlacement="TopLeft" 
                 Grid.Column="1" 
                 Grid.Row="2"/>
@@ -99,5 +150,5 @@
                 Grid.Column="1" 
                 Grid.Row="3"/>
         </Grid>
-    </StackPanel>
+    </Grid>
 </Window>

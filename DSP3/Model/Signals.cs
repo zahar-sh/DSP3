@@ -7,23 +7,28 @@ namespace DSP3.Model
     public static class Signal
     {
         private static readonly double PI2 = Math.PI * 2;
+        private static readonly double ToRadiansValue = Math.PI / 180;
 
-        public static double CalcSignal(double amplitude, double frequency, double phase, int i, int n)
+        public static double ToRadians(double angle) => angle * ToRadiansValue;
+
+        public static double ToDegree(double radians) => radians / ToRadiansValue;
+
+        public static double CalcSignal(double amplitude, double frequency, double phase)
         {
-            return amplitude * Math.Cos(PI2 * frequency * i / n + phase);
+            return amplitude * Math.Cos(PI2 * frequency + phase);
         }
 
         public static IEnumerable<double> CalcHarmonicSignals(int n, double amplitude, double frequency, double phase)
         {
             return Enumerable.Range(0, n)
-                .Select(i => CalcSignal(amplitude, frequency, phase, i, n));
+                .Select(i => CalcSignal(amplitude, frequency * i / n, phase));
         }
 
         public static IEnumerable<double> CalcPolyharmonicSignals(int n, IEnumerable<(double Amplitude, double Frequency, double Phase)> harmonics)
         {
             return Enumerable.Range(0, n)
                 .Select(i => harmonics
-                    .Select(harmonic => CalcSignal(harmonic.Amplitude, harmonic.Frequency, harmonic.Phase, i, n))
+                    .Select(harmonic => CalcSignal(harmonic.Amplitude, harmonic.Frequency * i / n, harmonic.Phase))
                     .Sum());
         }
 
@@ -67,7 +72,12 @@ namespace DSP3.Model
                     .Sum());
         }
 
-        public static IEnumerable<double> RestoreSignals(int n, IEnumerable<double> amplitudeSpectrums)
+        public static IEnumerable<double> RestoreSignals(int n, IEnumerable<double> amplitudeSpectrums, IEnumerable<double> phaseSpectrums)
+        {
+            return RestoreSignals(n, amplitudeSpectrums.Zip(phaseSpectrums, (amplitude, phase) => (amplitude, phase)));
+        }
+
+        public static IEnumerable<double> RestoreNonPhasedSignals(int n, IEnumerable<double> amplitudeSpectrums)
         {
             return Enumerable.Range(0, n)
                 .Select(i => amplitudeSpectrums
