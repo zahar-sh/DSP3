@@ -69,9 +69,8 @@
       <DependentUpon>App.xaml</DependentUpon>
       <SubType>Code</SubType>
     </Compile>
-    <Compile Include="Command\DelegateCommand.cs" />
     <Compile Include="Model\EnumerableExtensions.cs" />
-    <Compile Include="Model\Signals.cs" />
+    <Compile Include="Model\Signal.cs" />
     <Compile Include="Model\SignalType.cs" />
     <Compile Include="ViewModel\MainWindowViewModel.cs" />
     <Compile Include="View\MainWindow.xaml.cs">
