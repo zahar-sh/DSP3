@@ -2,6 +2,7 @@
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
+using System.Diagnostics;
 using System.Linq;
 using System.Threading.Tasks;
 using System.Windows;
@@ -11,6 +12,7 @@ namespace DSP3.ViewModel
     public class MainWindowViewModel : INotifyPropertyChanged
     {
         private SignalType _signalType;
+        private FourierTransformationType _fourierTransformationType;
         private int _signalsCount;
         private int _harmonicsCount;
         private double _amplitude;
@@ -22,6 +24,7 @@ namespace DSP3.ViewModel
         private IEnumerable<Vector> _phaseSpectrums;
         private IEnumerable<Vector> _restoredSignals;
         private IEnumerable<Vector> _restoredNonPhasedSignals;
+        private TimeSpan _elapsedTime;
 
         public MainWindowViewModel()
         {
@@ -40,6 +43,8 @@ namespace DSP3.ViewModel
 
         public SignalType SignalType { get => _signalType; set => SetProperty(ref _signalType, value, nameof(SignalType)); }
 
+        public FourierTransformationType FourierTransformationType { get => _fourierTransformationType; set => SetProperty(ref _fourierTransformationType, value, nameof(FourierTransformationType)); }
+
         public int HarmonicsCount { get => _harmonicsCount; set => SetProperty(ref _harmonicsCount, value, nameof(HarmonicsCount)); }
 
         public double Amplitude { get => _amplitude; set => SetProperty(ref _amplitude, value, nameof(Amplitude)); }
@@ -49,6 +54,8 @@ namespace DSP3.ViewModel
         public double Phase { get => _phase; set => SetProperty(ref _phase, value, nameof(Phase)); }
 
         public int PolyharmonicsCount { get => _polyharmonicsCount; set => SetProperty(ref _polyharmonicsCount, value, nameof(PolyharmonicsCount)); }
+
+        public TimeSpan ElapsedTime { get => _elapsedTime; set => SetProperty(ref _elapsedTime, value, nameof(ElapsedTime)); }
 
         public IEnumerable<Vector> Signals { get => _signals; set => SetProperty(ref _signals, value, nameof(Signals)); }
 
@@ -84,6 +91,7 @@ namespace DSP3.ViewModel
             {
                 case nameof(SignalsCount):
                 case nameof(SignalType):
+                case nameof(FourierTransformationType):
                 case nameof(HarmonicsCount):
                 case nameof(Amplitude):
                 case nameof(Frequency):
@@ -96,36 +104,33 @@ namespace DSP3.ViewModel
 
         private void Update()
         {
-            var signals = CreateSignals().ToList();
-            var sineSpectrumsTask = Task.Run(() => Signal.CalcSineSpectrums(HarmonicsCount, signals).ToList());
-            var cosineSpectrumsTask = Task.Run(() => Signal.CalcCosineSpectrums(HarmonicsCount, signals).ToList());
-            var sineSpectrums = sineSpectrumsTask.GetAwaiter().GetResult();
-            var cosineSpectrums = cosineSpectrumsTask.GetAwaiter().GetResult();
+            var stopwatch = new Stopwatch();
+            stopwatch.Start();
 
-            var amplitudeSpectrumsTask = Task.Run(() => Signal.CalcAmplitudeSpectrums(sineSpectrums, cosineSpectrums).ToList());
-            var phaseSpectrumsTask = Task.Run(() => Signal.CalcPhaseSpectrums(sineSpectrums, cosineSpectrums).ToList());
+            var signals =
+                SignalType == SignalType.Harmonic
+                ? Signal.CalcHarmonicSignals(SignalsCount, Amplitude, Frequency, Signal.ToRadians(Phase)).ToList()
+                : Signal.CalcPolyharmonicSignals(SignalsCount, CreateRandomPolyharmonic()).ToList();
 
-            var amplitudeSpectrums = amplitudeSpectrumsTask.GetAwaiter().GetResult();
-            var restoredNonPhasedSignalsTask = Task.Run(() => Signal.RestoreNonPhasedSignals(SignalsCount, amplitudeSpectrums).ToList());
+            var (amplitudeSpectrums, phaseSpectrums) =
+                FourierTransformationType == FourierTransformationType.Simple ?
+                CreateFourierTransformation(signals) :
+                Signal.CreateFastFourierTransformation(signals);
 
-            var phaseSpectrums = phaseSpectrumsTask.GetAwaiter().GetResult();
             var restoredSignalsTask = Task.Run(() => Signal.RestoreSignals(SignalsCount, amplitudeSpectrums, phaseSpectrums).ToList());
+            var restoredNonPhasedSignalsTask = Task.Run(() => Signal.RestoreNonPhasedSignals(SignalsCount, amplitudeSpectrums).ToList());
 
             var restoredNonPhasedSignals = restoredNonPhasedSignalsTask.GetAwaiter().GetResult();
             var restoredSignals = restoredSignalsTask.GetAwaiter().GetResult();
 
+            stopwatch.Stop();
+
+            ElapsedTime = stopwatch.Elapsed;
             Signals = signals.AsPoints();
-            AmplitudeSpectrums = amplitudeSpectrums.AsPoints();
-            PhaseSpectrums = phaseSpectrums.AsPoints();
             RestoredSignals = restoredSignals.AsPoints();
             RestoredNonPhasedSignals = restoredNonPhasedSignals.AsPoints();
-        }
-
-        private IEnumerable<double> CreateSignals()
-        {
-            return SignalType == SignalType.Harmonic
-                ? Signal.CalcHarmonicSignals(SignalsCount, Amplitude, Frequency, Signal.ToRadians(Phase))
-                : Signal.CalcPolyharmonicSignals(SignalsCount, CreateRandomPolyharmonic());
+            AmplitudeSpectrums = amplitudeSpectrums.AsPoints();
+            PhaseSpectrums = phaseSpectrums.AsPoints();
         }
 
         private IEnumerable<(double Amplitude, double Frequency, double Phase)> CreateRandomPolyharmonic()
@@ -136,6 +141,21 @@ namespace DSP3.ViewModel
             double GetRandomElement(double[] array) => array[random.Next(array.Length)];
             return Enumerable.Range(0, PolyharmonicsCount)
                 .Select(i => (GetRandomElement(amplitudes), 1.0d, GetRandomElement(phases)));
+        }
+
+        private (IList<double>, IList<double>) CreateFourierTransformation(IList<double> signals)
+        {
+            var sineSpectrumsTask = Task.Run(() => Signal.CalcSineSpectrums(HarmonicsCount, signals).ToList());
+            var cosineSpectrumsTask = Task.Run(() => Signal.CalcCosineSpectrums(HarmonicsCount, signals).ToList());
+            var sineSpectrums = sineSpectrumsTask.GetAwaiter().GetResult();
+            var cosineSpectrums = cosineSpectrumsTask.GetAwaiter().GetResult();
+
+            var amplitudeSpectrumsTask = Task.Run(() => Signal.CalcAmplitudeSpectrums(sineSpectrums, cosineSpectrums).ToList());
+            var phaseSpectrumsTask = Task.Run(() => Signal.CalcPhaseSpectrums(sineSpectrums, cosineSpectrums).ToList());
+
+            var amplitudeSpectrums = amplitudeSpectrumsTask.GetAwaiter().GetResult();
+            var phaseSpectrums = phaseSpectrumsTask.GetAwaiter().GetResult();
+            return (amplitudeSpectrums, phaseSpectrums);
         }
     }
 }

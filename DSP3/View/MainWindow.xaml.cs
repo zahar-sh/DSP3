@@ -21,10 +21,25 @@ namespace DSP3
                 if (harmonicRadioButton.IsChecked.GetValueOrDefault())
                 {
                     viewModel.SignalType = SignalType.Harmonic;
-                } 
+                }
                 else if (polyharmonicRadioButton.IsChecked.GetValueOrDefault())
                 {
                     viewModel.SignalType = SignalType.Polyharmonic;
+                }
+            }
+        }
+
+        private void FourierTransformationTypeChanged(object sender, RoutedEventArgs e)
+        {
+            if (DataContext is MainWindowViewModel viewModel)
+            {
+                if (simpleFtRadioButton.IsChecked.GetValueOrDefault())
+                {
+                    viewModel.FourierTransformationType = FourierTransformationType.Simple;
+                }
+                else if (fastFtRadioButton.IsChecked.GetValueOrDefault())
+                {
+                    viewModel.FourierTransformationType = FourierTransformationType.Fast;
                 }
             }
         }

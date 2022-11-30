@@ -95,9 +95,10 @@
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="*"/>
                 <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="*"/>
             </Grid.ColumnDefinitions>
             <Grid.RowDefinitions>
-                <RowDefinition Height="Auto"/>
                 <RowDefinition Height="Auto"/>
                 <RowDefinition Height="Auto"/>
                 <RowDefinition Height="Auto"/>
@@ -152,13 +153,13 @@
                 Grid.Column="1" 
                 Grid.Row="3"/>
             <Label
-                Content="Phase"
-                Grid.Column="0"
-                Grid.Row="4"/>
+                Content="SignalType"
+                Grid.Column="2"
+                Grid.Row="0"/>
             <StackPanel 
                 Orientation="Horizontal"
-                Grid.Column="1"
-                Grid.Row="4">
+                Grid.Column="3"
+                Grid.Row="0">
                 <RadioButton
                     x:Name="harmonicRadioButton"
                     Content="Harmonic"
@@ -171,6 +172,34 @@
                     Margin="10"
                     Checked="SignalTypeChanged"/>
             </StackPanel>
+            <Label
+                Content="FourierTransformationType"
+                Grid.Column="2"
+                Grid.Row="1"/>
+            <StackPanel 
+                Orientation="Horizontal"
+                Grid.Column="3"
+                Grid.Row="1">
+                <RadioButton
+                    x:Name="simpleFtRadioButton"
+                    Content="Simple"
+                    Margin="10"
+                    IsChecked="True"
+                    Checked="FourierTransformationTypeChanged"/>
+                <RadioButton
+                    x:Name="fastFtRadioButton"
+                    Content="Fast"
+                    Margin="10"
+                    Checked="FourierTransformationTypeChanged"/>
+            </StackPanel>
+            <Label
+                Content="TimeElapsed"
+                Grid.Column="2"
+                Grid.Row="2"/>
+            <Label
+                Content="{Binding ElapsedTime.Milliseconds}"
+                Grid.Column="3"
+                Grid.Row="2"/>
         </Grid>
     </Grid>
 </Window>
