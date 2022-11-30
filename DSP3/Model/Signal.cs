@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Numerics;
+using System.Windows.Documents;
 
 namespace DSP3.Model
 {
@@ -86,6 +87,11 @@ namespace DSP3.Model
                     .Sum());
         }
 
+        private static Complex CalcFactor(int m, int n)
+        {
+            return Complex.Exp(new Complex(0, -2) * new Complex(Math.PI, 0) * new Complex(m, 0) / new Complex(n, 0));
+        }
+
         private static void CreateFastFourierTransformation(Complex[] signals)
         {
             var n = signals.Length;
@@ -108,17 +114,15 @@ namespace DSP3.Model
                 var e = evenElements[m];
                 var o = oddElements[m];
 
-                var i1 = m;
-                var f1 = Complex.Exp(-PI2 * i1 * m / n);
-                signals[i1] = e + (f1 * o);
+                var f1 = CalcFactor(m, n);
+                signals[m] = e + (f1 * o);
 
-                var i2 = m + num;
-                var f2 = Complex.Exp(-PI2 * i2 * m / n);
-                signals[i2] = e - (f2 * o);
+                var f2 = CalcFactor(m + num, n);
+                signals[m + num] = e + (f2 * o);
             }
         }
 
-        public static (IEnumerable<double>, IEnumerable<double>) CreateFastFourierTransformation(IEnumerable<double> signals)
+        public static (IList<double> Amplitudes, IList<double> Phases) CreateFastFourierTransformation(IEnumerable<double> signals)
         {
             var preparedSignals = signals
                 .Select(v => new Complex(v, 0))
@@ -128,14 +132,13 @@ namespace DSP3.Model
 
             var n = preparedSignals.Length;
             var amplitudeSpectrums = preparedSignals
-                .Select(v => v.Magnitude)
-                .Select(v => v * 2 / n)
+                .Select(v => v.Magnitude / n)
                 .ToList();
             var phases = preparedSignals
-                .Select(v => v.Phase)
+                .Select(v => -v.Phase)
                 .ToList();
 
-            return (amplitudeSpectrums, phases);
+            return (Amplitudes: amplitudeSpectrums, Phases: phases);
         }
     }
 }
