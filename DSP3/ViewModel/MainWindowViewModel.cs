@@ -19,22 +19,26 @@ namespace DSP3.ViewModel
         private double _frequency;
         private double _phase;
         private int _polyharmonicsCount;
+        private int _filterFactor;
         private IEnumerable<Vector> _signals;
         private IEnumerable<Vector> _amplitudeSpectrums;
         private IEnumerable<Vector> _phaseSpectrums;
         private IEnumerable<Vector> _restoredSignals;
         private IEnumerable<Vector> _restoredNonPhasedSignals;
+        private IEnumerable<Vector> _restoredLow;
+        private IEnumerable<Vector> _restoredHigh;
         private TimeSpan _elapsedTime;
 
         public MainWindowViewModel()
         {
             _signalType = SignalType.Harmonic;
             _signalsCount = 512;
-            _harmonicsCount = 8;
+            _harmonicsCount = 16;
             _polyharmonicsCount = 32;
             _amplitude = 8;
             _frequency = 4;
             _phase = 60;
+            _filterFactor = 16;
             PropertyChanged += OnPropertyChanged;
             Update();
         }
@@ -55,6 +59,8 @@ namespace DSP3.ViewModel
 
         public int PolyharmonicsCount { get => _polyharmonicsCount; set => SetProperty(ref _polyharmonicsCount, value, nameof(PolyharmonicsCount)); }
 
+        public int FilterFactor { get => _filterFactor; set => SetProperty(ref _filterFactor, value, nameof(FilterFactor)); }
+
         public TimeSpan ElapsedTime { get => _elapsedTime; set => SetProperty(ref _elapsedTime, value, nameof(ElapsedTime)); }
 
         public IEnumerable<Vector> Signals { get => _signals; set => SetProperty(ref _signals, value, nameof(Signals)); }
@@ -66,6 +72,11 @@ namespace DSP3.ViewModel
         public IEnumerable<Vector> RestoredSignals { get => _restoredSignals; set => SetProperty(ref _restoredSignals, value, nameof(RestoredSignals)); }
 
         public IEnumerable<Vector> RestoredNonPhasedSignals { get => _restoredNonPhasedSignals; set => SetProperty(ref _restoredNonPhasedSignals, value, nameof(RestoredNonPhasedSignals)); }
+
+        public IEnumerable<Vector> RestoredLow{ get => _restoredLow; set => SetProperty(ref _restoredLow, value, nameof(RestoredLow)); }
+
+        public IEnumerable<Vector> RestoredHigh{ get => _restoredHigh; set => SetProperty(ref _restoredHigh, value, nameof(RestoredHigh)); }
+
 
         public event PropertyChangedEventHandler PropertyChanged;
 
@@ -97,6 +108,7 @@ namespace DSP3.ViewModel
                 case nameof(Frequency):
                 case nameof(Phase):
                 case nameof(PolyharmonicsCount):
+                case nameof(FilterFactor):
                     Update();
                     break;
             }
@@ -115,13 +127,17 @@ namespace DSP3.ViewModel
             var (amplitudeSpectrums, phaseSpectrums) =
                 FourierTransformationType == FourierTransformationType.Simple ?
                 CreateFourierTransformation(signals) :
-                Signal.CreateFastFourierTransformation(signals);
+                Signal.CreateFastFourierTransformation(signals);;
 
             var restoredSignalsTask = Task.Run(() => Signal.RestoreSignals(SignalsCount, amplitudeSpectrums, phaseSpectrums).ToList());
             var restoredNonPhasedSignalsTask = Task.Run(() => Signal.RestoreNonPhasedSignals(SignalsCount, amplitudeSpectrums).ToList());
+            var restoredLowTask = Task.Run(() => Signal.RestoreSignals(SignalsCount, Filter(amplitudeSpectrums, phaseSpectrums, x => x < FilterFactor)).ToList());
+            var restoredHighTask = Task.Run(() => Signal.RestoreSignals(SignalsCount, Filter(amplitudeSpectrums, phaseSpectrums, x => x > FilterFactor)).ToList());
 
             var restoredNonPhasedSignals = restoredNonPhasedSignalsTask.GetAwaiter().GetResult();
             var restoredSignals = restoredSignalsTask.GetAwaiter().GetResult();
+            var restoredLow = restoredLowTask.GetAwaiter().GetResult();
+            var restoredHigh = restoredHighTask.GetAwaiter().GetResult();
 
             stopwatch.Stop();
 
@@ -129,8 +145,17 @@ namespace DSP3.ViewModel
             Signals = signals.AsPoints();
             RestoredSignals = restoredSignals.AsPoints();
             RestoredNonPhasedSignals = restoredNonPhasedSignals.AsPoints();
+            RestoredLow = restoredLow.AsPoints();
+            RestoredHigh = restoredHigh.AsPoints(); 
             AmplitudeSpectrums = amplitudeSpectrums.AsPoints();
             PhaseSpectrums = phaseSpectrums.AsPoints();
+        }
+
+        private IEnumerable<(double Amplitude, double Phase)> Filter(IList<double> amplitudeSpectrums, IList<double> phaseSpectrums, Func<int, bool> predicate)
+        {
+            var zero = (0.0d, 0.0d);
+            var i = 0;
+            return amplitudeSpectrums.Zip(phaseSpectrums, (a, p) => predicate(i++) ? (a, p) : zero);
         }
 
         private IEnumerable<(double Amplitude, double Frequency, double Phase)> CreateRandomPolyharmonic()

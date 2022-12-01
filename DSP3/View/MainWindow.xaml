@@ -29,6 +29,9 @@
             Grid.Column="0"
             Grid.Row="0"
             Grid.ColumnSpan="2">
+            <sf:SfChart.Legend>
+                <sf:ChartLegend CheckBoxVisibility="Visible" />
+            </sf:SfChart.Legend>
             <sf:SfChart.PrimaryAxis>
                 <sf:CategoryAxis Header="X" />
             </sf:SfChart.PrimaryAxis>
@@ -36,23 +39,36 @@
                 <sf:NumericalAxis Header="Y"/>
             </sf:SfChart.SecondaryAxis>
             <sf:SplineSeries
-                Name="SignalValues" 
+                Label="SignalValues" 
                 ItemsSource="{Binding Signals}" 
                 XBindingPath="X"
                 YBindingPath="Y"
-                Interior="#5FFF0000"/>
+                Interior="#FF0000"/>
             <sf:SplineSeries
-                Name="RestoredSignals"
+                Label="RestoredSignals"
                 ItemsSource="{Binding RestoredSignals}"
                 XBindingPath="X"
                 YBindingPath="Y"
-                Interior="#5F00FF00"/>
+                Interior="#00FF00"/>
             <sf:SplineSeries
-                Name="RestoredNonPhasedSignals" 
+                Label="RestoredNonPhasedSignals" 
                 ItemsSource="{Binding RestoredNonPhasedSignals}"
                 XBindingPath="X"
                 YBindingPath="Y"
-                Interior="#5F0000FF"/>
+                Interior="#0000FF"/>
+            <sf:SplineSeries
+                Label="RestoredLow"
+                ItemsSource="{Binding RestoredLow}"
+                XBindingPath="X"
+                YBindingPath="Y"
+                Interior="#FFFF00"/>
+            <sf:SplineSeries
+                Visibility="Hidden"
+                Label="RestoredHigh" 
+                ItemsSource="{Binding RestoredHigh}"
+                XBindingPath="X"
+                YBindingPath="Y"
+                Interior="#FF00FF"/>
         </sf:SfChart>
         <sf:SfChart
             Header="AmplitudeSpectrums"
@@ -111,7 +127,7 @@
             <Slider 
                 Value="{Binding HarmonicsCount, Mode=TwoWay}"
                 Minimum="1" 
-                Maximum="20" 
+                Maximum="32" 
                 SmallChange="1" 
                 AutoToolTipPlacement="TopLeft" 
                 Grid.Column="1" 
@@ -200,6 +216,18 @@
                 Content="{Binding ElapsedTime.Milliseconds}"
                 Grid.Column="3"
                 Grid.Row="2"/>
+            <Label
+                Content="FilterFactor"
+                Grid.Column="2"
+                Grid.Row="3"/>
+            <Slider 
+                Value="{Binding FilterFactor, Mode=TwoWay}"
+                Minimum="0" 
+                Maximum="64" 
+                SmallChange="8" 
+                AutoToolTipPlacement="TopLeft" 
+                Grid.Column="4" 
+                Grid.Row="3"/>
         </Grid>
     </Grid>
 </Window>
